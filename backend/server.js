@@ -11,8 +11,8 @@ const cors = require("cors");
 const app = express();
 
 app.use(cors({
-  origin: " http://localhost:5173",   // allow your React app
-                // if you use cookies or sessions
+  origin: "http://localhost:5173",
+  credentials: true,
 }));
 
 
@@ -46,6 +46,10 @@ const productRoutes = require('./bmodels/routes/productRoutes');
 app.use('/api/products', productRoutes);
 console.log('Product routes loaded at /api/products'); 
 
+const serviceRoutes = require("./bmodels/routes/serviceRoutes");
+app.use("/api/services", serviceRoutes);
+console.log('Service  routes loaded at /api/servicess'); 
+
 console.log('🔄 Loading cart routes');
 const cartRoutes = require('./bmodels/routes/cartRoutes');
 app.use('/api/cart', cartRoutes);
@@ -56,9 +60,23 @@ const orderRoutes = require('./bmodels/routes/orderRoutes');
 app.use('/api/orders', orderRoutes);
 console.log('✅ Order routes loaded');
 
+console.log('🔄 Loading wishlist routes...');
+const wishlistRoutes = require('./bmodels/routes/wishlistRoutes');
+app.use('/api/wishlist', wishlistRoutes);
+console.log('✅ Wishlist routes loaded at /api/wishlist');
+
+console.log('🔄 Loading admin routes...');
+const adminRoutes = require('./bmodels/routes/adminRoutes');
+app.use('/api/admin', adminRoutes);
+console.log('✅ Admin routes loaded at /api/admin');
+
 console.log('🔄 Loading upload routes ...');
 const uploadRoutes = require('./bmodels/routes/uploadRoutes');
 app.use('/api/upload', uploadRoutes);
+
+console.log('🔄 Loading vision search routes ...');
+const visionRoutes = require('./bmodels/routes/visionRoutes');
+app.use('/api/vision-search', visionRoutes);
 
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 console.log('✅ Uploads & static folder loaded');

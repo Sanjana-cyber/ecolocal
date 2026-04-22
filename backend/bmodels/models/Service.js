@@ -1,42 +1,8 @@
 const mongoose = require("mongoose");
 
-/* 🕒 Optional service slot schema */
-const slotSchema = new mongoose.Schema({
-  day: {
-    type: String,
-    required: true,
-    enum: [
-      "Monday",
-      "Tuesday",
-      "Wednesday",
-      "Thursday",
-      "Friday",
-      "Saturday",
-      "Sunday"
-    ]
-  },
-  startTime: {
-    type: String,
-    required: true
-  },
-  endTime: {
-    type: String,
-    required: true
-  },
-  price: {
-    type: Number,
-    required: true,
-    min: 0
-  },
-  available: {
-    type: Boolean,
-    default: true
-  }
-});
-
 const serviceSchema = new mongoose.Schema(
   {
-    name: {
+    serviceName: {
       type: String,
       required: true,
       trim: true
@@ -47,10 +13,9 @@ const serviceSchema = new mongoose.Schema(
       required: true
     },
 
-    /* 💰 Base service price */
-    price: {
+    basePrice: {
       type: Number,
-      default: 0,
+      required: true,
       min: 0
     },
 
@@ -58,8 +23,6 @@ const serviceSchema = new mongoose.Schema(
       type: String,
       enum: [
         "repair",
-        "tutoring",
-        "eco",
         "cleaning",
         "delivery",
         "consulting",
@@ -68,39 +31,40 @@ const serviceSchema = new mongoose.Schema(
       required: true
     },
 
-    provider: {
+    providerName: {
       type: String,
       required: true,
       trim: true
     },
 
-    location: {
-      type: String,
-      required: true
+    estimatedTime: {
+      type: String
     },
 
-    image: {
+    availabilityStatus: {
+      type: String,
+      enum: ["available", "busy", "inactive"],
+      default: "available"
+    },
+
+    mainImage: {
       type: String,
       default: "default-service.png"
     },
 
-    availability: {
-      type: String,
-      enum: ["available", "busy", "unavailable"],
-      default: "available"
+    galleryImages: {
+      type: [String],
+      default: []
     },
 
-    /* 🕒 Optional time slots */
-    slots: [slotSchema],
+    slots: {
+      type: Number,
+      default: 0
+    },
 
     user: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User"
-    },
-
-    isFeatured: {
-      type: Boolean,
-      default: false
     },
 
     status: {
@@ -114,10 +78,9 @@ const serviceSchema = new mongoose.Schema(
 
 /* 🔍 Search index */
 serviceSchema.index({
-  name: "text",
+  serviceName: "text",
   description: "text",
-  provider: "text",
-  location: "text"
+  providerName: "text"
 });
 
 module.exports = mongoose.model("Service", serviceSchema);

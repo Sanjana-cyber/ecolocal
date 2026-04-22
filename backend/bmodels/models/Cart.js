@@ -19,7 +19,13 @@ const CartSchema = new mongoose.Schema({
       default: 1,
       min: 1
     },
-    image: String
+    image: String,
+    color: String,
+    size: String,
+    variantKey: {
+      type: String,
+      default: 'default'
+    }
   }],
   totalPrice: {
     type: Number,

@@ -7,7 +7,7 @@ const asyncHandler = require('express-async-handler');
 // @route   POST /api/cart
 // @access  Private
 const addToCart = asyncHandler(async (req, res) => {
-  const { productId, quantity } = req.body;
+  const { productId, quantity, name, price, image, color, size, variantKey } = req.body;
   const userId = req.user._id;
 
   const product = await Product.findById(productId);
@@ -20,7 +20,7 @@ const addToCart = asyncHandler(async (req, res) => {
 
   if (cart) {
     const itemIndex = cart.items.findIndex(
-      item => item.product.toString() === productId
+      item => item.product.toString() === productId && item.variantKey === (variantKey || 'default')
     );
 
     if (itemIndex > -1) {
@@ -28,10 +28,13 @@ const addToCart = asyncHandler(async (req, res) => {
     } else {
       cart.items.push({
         product: productId,
-        name: product.name,
-        price: product.price,
+        name: name || product.name,
+        price: price || product.price,
         quantity,
-        image: product.image
+        image: image || product.image,
+        color,
+        size,
+        variantKey: variantKey || 'default'
       });
     }
 
@@ -47,13 +50,16 @@ const addToCart = asyncHandler(async (req, res) => {
       items: [
         {
           product: productId,
-          name: product.name,
-          price: product.price,
+          name: name || product.name,
+          price: price || product.price,
           quantity,
-          image: product.image
+          image: image || product.image,
+          color,
+          size,
+          variantKey: variantKey || 'default'
         }
       ],
-      totalPrice: product.price * quantity
+      totalPrice: (price || product.price) * quantity
     });
   }
 
@@ -75,7 +81,7 @@ const getCart = asyncHandler(async (req, res) => {
 // @route   PUT /api/cart
 // @access  Private
 const updateCartItem = asyncHandler(async (req, res) => {
-  const { productId, quantity } = req.body;
+  const { productId, variantKey, quantity } = req.body;
   const userId = req.user._id;
 
   let cart = await Cart.findOne({ user: userId });
@@ -84,17 +90,17 @@ const updateCartItem = asyncHandler(async (req, res) => {
   }
 
   const itemIndex = cart.items.findIndex(
-    item => item.product.toString() === productId
+    item => item.product.toString() === productId && item.variantKey === (variantKey || 'default')
   );
 
   if (itemIndex === -1) {
-    return res.status(404).json({ message: 'Product not in cart' });
+    return res.status(404).json({ message: 'Product variant not in cart' });
   }
 
   cart.items[itemIndex].quantity = quantity;
 
   cart.totalPrice = cart.items.reduce(
-    (acc, item) => acc + item.price * item.quantity,
+    (acc, item) => acc + (item.price || 0) * item.quantity,
     0
   );
 
@@ -105,8 +111,10 @@ const updateCartItem = asyncHandler(async (req, res) => {
 // @desc    Remove product from cart
 // @route   DELETE /api/cart/:productId
 // @access  Private
+// @query   variantKey
 const removeCartItem = asyncHandler(async (req, res) => {
   const { productId } = req.params;
+  const { variantKey } = req.query;
   const userId = req.user._id;
 
   let cart = await Cart.findOne({ user: userId });
@@ -115,11 +123,11 @@ const removeCartItem = asyncHandler(async (req, res) => {
   }
 
   cart.items = cart.items.filter(
-    item => item.product.toString() !== productId
+    item => !(item.product.toString() === productId && item.variantKey === (variantKey || 'default'))
   );
 
   cart.totalPrice = cart.items.reduce(
-    (acc, item) => acc + item.price * item.quantity,
+    (acc, item) => acc + (item.price || 0) * item.quantity,
     0
   );
 

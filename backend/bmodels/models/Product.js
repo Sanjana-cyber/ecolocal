@@ -1,68 +1,145 @@
-const mongoose = require('mongoose');
+const mongoose = require("mongoose");
 
-const variantSchema = new mongoose.Schema({
-  size: { type: String, required: true },
-  color: { type: String, required: true },
-  stock: { type: Number, required: true, min: 0 },
-  price: { type: Number, required: true, min: 0 }
-});
-
-const productSchema = new mongoose.Schema({
-  name: { type: String, required: true, trim: true },
-  description: { type: String, required: true },
-
-  // ✅ Top-level base price (used for display / filtering)
-  price: { type: Number, default: 0, min: 0 },
-
-  category: {
-    type: String,
-    enum: ["farmers", "artisans", "repair", "tutoring", "eco", "shops"],
-    required: true
+/* Size options for each color */
+const sizeSchema = new mongoose.Schema(
+  {
+    size: {
+      type: String,
+      required: true,
+      trim: true,
+      uppercase: true, // M, L, XL
+    },
+    stock: {
+      type: Number,
+      required: true,
+      min: 0,
+      default: 0,
+    },
   },
+  { _id: false }
+);
 
-  brand: { type: String, required: true },
+/* Each color has its own gallery + sizes */
+const colorVariantSchema = new mongoose.Schema(
+  {
+    color: {
+      type: String,
+      required: true,
+      trim: true,
+      lowercase: true, // black, red
+    },
 
-  images: {
-    type: [String],
-    default: ["default.png"]
+    images: {
+      type: [String],
+      default: [],
+    },
+
+    sizes: {
+      type: [sizeSchema],
+      default: [],
+    },
   },
+  { _id: false }
+);
 
-  variants: [variantSchema],
+/* Main product schema */
+const productSchema = new mongoose.Schema(
+  {
+    name: {
+      type: String,
+      required: true,
+      trim: true,
+    },
 
-  totalStock: {
-    type: Number,
-    default: 0
+    description: {
+      type: String,
+      required: true,
+      trim: true,
+    },
+
+    price: {
+      type: Number,
+      required: true,
+      min: 0,
+      default: 0,
+    },
+
+    category: {
+      type: String,
+      enum: [
+        "farmers",
+        "artisans",
+        "eco",
+        "local-shop",
+      ],
+      required: true,
+    },
+
+    brand: {
+      type: String,
+      required: true,
+      trim: true,
+    },
+
+    /* Homepage card image */
+    mainImage: {
+      type: String,
+      required: true,
+    },
+
+    /* Color based variants */
+    colorVariants: {
+      type: [colorVariantSchema],
+      default: [],
+    },
+
+    /* Auto calculated */
+    totalStock: {
+      type: Number,
+      default: 0,
+    },
+
+    user: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+    },
+
+    isFeatured: {
+      type: Boolean,
+      default: false,
+    },
+
+    status: {
+      type: String,
+      enum: ["active", "inactive"],
+      default: "active",
+    },
   },
+  { timestamps: true }
+);
 
-  user: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: "User"
-  },
+/* Auto stock calculation */
+productSchema.pre("save", async function () {
+  let total = 0;
 
-  isFeatured: {
-    type: Boolean,
-    default: false
-  },
-
-  status: {
-    type: String,
-    enum: ['active', 'inactive'],
-    default: 'active'
+  if (this.colorVariants && Array.isArray(this.colorVariants)) {
+    this.colorVariants.forEach((color) => {
+      if (color.sizes && Array.isArray(color.sizes)) {
+        color.sizes.forEach((size) => {
+          total += Number(size.stock || 0);
+        });
+      }
+    });
   }
 
-}, { timestamps: true });
-
-/* 🔥 Auto calculate stock */
-// ✅ Fixed: no `next` needed
-productSchema.pre("save", function () {
-  if (this.variants && this.variants.length > 0) {
-    this.totalStock = this.variants.reduce((sum, v) => sum + v.stock, 0);
-  } else {
-    this.totalStock = 0;
-  }
+  this.totalStock = total;
 });
 
-/* 🔍 Search index */
-productSchema.index({ name: "text", description: "text" });
+/* Search index */
+productSchema.index({
+  name: "text",
+  description: "text",
+  brand: "text",
+});
 
-module.exports = mongoose.model('Product', productSchema);
+module.exports = mongoose.model("Product", productSchema);

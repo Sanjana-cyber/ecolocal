@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import axios from "axios";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import Header from "../components/Header";
 import Footer from "../components/Footer";
 
@@ -107,6 +107,7 @@ const CommunityBoard = () => (
 
 /* ── Landing Page ────────────────────────────────────── */
 const LandingPage = () => {
+  const navigate = useNavigate();
   const [isLogin, setIsLogin] = useState(true);
   const [formData, setFormData] = useState({ name: "", email: "", password: "" });
 
@@ -140,6 +141,7 @@ const handleSubmit = async (e) => {
 
     localStorage.setItem("token", data.token);
     localStorage.setItem("role", data.user.role);
+    localStorage.setItem("name", data.user.name);
 
     alert("Login Successful");
 
@@ -147,7 +149,7 @@ const handleSubmit = async (e) => {
     if (data.user.role === "admin") {
       navigate("/admin");
     } else {
-      navigate("/home");
+      navigate("/welcome");
     }
 
   } catch (err) {

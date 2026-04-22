@@ -9,11 +9,14 @@ exports.addProduct = async (req, res) => {
       return res.status(403).json({ message: "Access denied" });
     }
 
-    // ✅ Basic validation
-    const { name, price, variants } = req.body;
+    // ✅ Improved Validation
+    const { name, price, colorVariants, description, category, brand } = req.body;
 
-    if (!name || !price || !variants || variants.length === 0) {
-      return res.status(400).json({ message: "All required fields must be filled" });
+    if (!name || !description || !category || !brand || !colorVariants || colorVariants.length === 0) {
+      return res.status(400).json({
+        message: "Missing required fields",
+        fields: { name: !!name, description: !!description, category: !!category, brand: !!brand, colorVariants: !!colorVariants?.length }
+      });
     }
 
     const product = new Product({
@@ -22,23 +25,28 @@ exports.addProduct = async (req, res) => {
     });
 
     await product.save();
-
     res.status(201).json(product);
 
-  }catch (error) {
-  console.log("FULL ERROR:", error);
-  res.status(500).json({ message: error.message });
-}
+  } catch (error) {
+    console.error("ADD PRODUCT ERROR DETAILS:", error);
 
+    // Catch Mongoose Validation Errors
+    if (error.name === "ValidationError") {
+      const messages = Object.values(error.errors).map(val => val.message);
+      return res.status(400).json({ message: messages.join(", ") });
+    }
+
+    res.status(500).json({ message: error.message || "Internal Server Error" });
+  }
 };
 
 
 
-// 📦 GET ALL PRODUCTS (WITH PAGINATION)
+// 📦 GET ALL PRODUCTS (WITH PAGINATION + FILTERS + SORT)
 exports.getProducts = async (req, res) => {
   try {
     const page = Number(req.query.page) || 1;
-    const limit = 5;
+    const limit = Number(req.query.limit) || 12;
     const skip = (page - 1) * limit;
 
     // 🔍 SEARCH (by name)
@@ -60,17 +68,27 @@ exports.getProducts = async (req, res) => {
       };
     }
 
+    // ⭐ FEATURED FILTER
+    const featuredFilter = req.query.featured === 'true' ? { isFeatured: true } : {};
+
     // 🔗 Combine all filters
     const filter = {
       ...keyword,
       ...category,
       ...priceFilter,
+      ...featuredFilter,
     };
+
+    // 🔽 SORT
+    let sortOption = { createdAt: -1 }; // default: newest
+    if (req.query.sort === 'low-high') sortOption = { price: 1 };
+    if (req.query.sort === 'high-low') sortOption = { price: -1 };
+    if (req.query.sort === 'newest') sortOption = { createdAt: -1 };
 
     const total = await Product.countDocuments(filter);
 
     const products = await Product.find(filter)
-      .sort({ createdAt: -1 })
+      .sort(sortOption)
       .skip(skip)
       .limit(limit);
 
@@ -85,6 +103,7 @@ exports.getProducts = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
+
 
 
 

@@ -8,6 +8,7 @@ const GoogleSuccess = () => {
 
     const token = params.get("token");
     const role = params.get("role");
+    const name = params.get("name");
 
     // Check if token exists
     if (!token) {
@@ -18,12 +19,13 @@ const GoogleSuccess = () => {
     // Save token and role
     localStorage.setItem("token", token);
     localStorage.setItem("role", role);
+    if (name) localStorage.setItem("name", name);
 
     // Redirect user
     if (role === "admin") {
       window.location.href = "/admin";
     } else {
-      window.location.href = "/home";
+      window.location.href = "/welcome";
     }
 
   }, []);
